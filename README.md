@@ -39,6 +39,44 @@ For other vectorizer functions check: https://weaviate.io/developers/weaviate/qu
 - Weaviate Typescript Client
 - Hugging Face
 
+## File Structre Overview - after fist refactoring
+
+The initial version of the application had all the code residing in a single file (server.ts). This monolithic structure can become hard to maintain and understand as the application grows. To improve the codebase's maintainability, readability, and modularity, it was refactored into multiple files, each with a distinct responsibility.
+
+The updated application has the following file structure:
+
+project
+│
+├── src
+│ ├── index.ts # The application's entry point
+│ ├── schema
+│ │ ├── index.ts # Functions for managing the Weaviate schema
+│ │ └── types.ts # Type definitions related to the schema
+│ ├── data
+│ │ ├── index.ts # Functions for importing data into Weaviate
+│ │ └── types.ts # Type definitions related to the data
+│ └── utils
+│ └── client.ts # Initializes the Weaviate client
+│
+├── server.ts # Sets up the Express server
+└── README.md
+
+Here's a summary of what each file/module does:
+
+_src/index.ts_: This is the application's main entry point. It initializes the server and starts listening for requests.
+
+_src/config/index.tsa_: This module contains all your configuration-related code, including setting up the Weaviate client and other environment-dependent values.
+
+_src/schema/index.ts_ and _src/schema/Question.ts_: These modules contain code related to the Weaviate schema. The Question.ts module defines the Question class, and the index.ts module contains the function to add the schema to Weaviate.
+
+_src/routes/index.ts_ and _src/routes/schema.ts_: These modules contain the Express routes. The schema.ts module defines the /schema endpoint, and the index.ts module combines all your routes into a single Express Router instance.
+
+_src/data/index.ts_ and _src/data/importQuestions.ts_: These modules contain code for importing data into Weaviate. The importQuestions.ts module contains the code to fetch the questions from the URL and add them to Weaviate, and the index.ts module exports a function to perform all necessary data imports.
+
+_.env_: This file contains your environment variables, which should not be committed to your version control system.\*
+
+_package.json_ and _tsconfig.json_: These are standard Node.js and TypeScript configuration files.
+
 ## Notes
 
 - What is Weaviate and what does it do?

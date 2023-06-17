@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
-import weaviate, { WeaviateClient, ApiKey } from "weaviate-ts-client";
+import weaviate, { WeaviateClient, ApiKey, ObjectsBatcher } from "weaviate-ts-client";
+import fetch from "node-fetch";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -7,6 +8,10 @@ dotenv.config();
 const CLUSTER_URL = process.env.WEAVIATE_CLUSTER_URL;
 const WEAVIATE_API_KEY = process.env.WEAVIATE_API_KEY;
 const HUGGINGFACE_API_KEY = process.env.HUGGINGFACE_API_KEY;
+
+const headers = {
+  Authorization: `Bearer ${WEAVIATE_API_KEY}`,
+};
 
 if (CLUSTER_URL === undefined || WEAVIATE_API_KEY === undefined || HUGGINGFACE_API_KEY === undefined) {
   throw new Error("Environment variables are not set correctly");
@@ -51,6 +56,63 @@ app.get("/schema", (req: Request, res: Response) => {
       res.status(500).send(err.message);
     });
 });
+
+interface Question {
+  Answer: string;
+  Question: string;
+  Category: string;
+  vector: number[];
+}
+
+// Add this function to import data
+async function importQuestions() {
+  const url =
+    "https://raw.githubusercontent.com/weaviate-tutorials/quickstart/main/data/jeopardy_tiny_with_vectors_all-MiniLM-L6-v2.json";
+
+  // Fetch data from the URL
+  const response = await fetch(url);
+  // Check if the request was successful
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const data: Question[] = (await response.json()) as Question[]; // TODO: check this type assetion when you understand what is going on and what's the format of the data
+
+  // Create a batcher
+  let batcher: ObjectsBatcher = client.batch.objectsBatcher();
+  let counter = 0;
+  const batchSize = 100;
+
+  for (const question of data) {
+    // Construct an object with a class and properties 'answer' and 'question'
+    const obj = {
+      class: "Question",
+      properties: {
+        answer: question.Answer,
+        question: question.Question,
+        category: question.Category,
+      },
+      vector: question.vector, // Add the vector data to the object,
+    };
+
+    // add the object to the batch queue
+    batcher = batcher.withObject(obj);
+
+    // When the batch counter reaches batchSize, push the objects to Weaviate
+    if (counter++ === batchSize) {
+      // flush the batch queue
+      const res = await batcher.do();
+      console.log(res);
+
+      // restart the batch queue
+      counter = 0;
+      batcher = client.batch.objectsBatcher();
+    }
+  }
+
+  // Flush the remaining objects
+  const res = await batcher.do();
+  console.log(res);
+}
 
 const PORT = process.env.PORT || 3000;
 
