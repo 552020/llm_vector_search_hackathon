@@ -21,6 +21,24 @@ const client: WeaviateClient = weaviate.client({
 
 const app = express();
 
+let classObj = {
+  class: "Question",
+  vectorizer: "text2vec-huggingface", // If set to "none" you must always provide vectors yourself. Could be any other "text2vec-*" also.
+  moduleConfig: {
+    "text2vec-huggingface": {
+      model: "sentence-transformers/all-MiniLM-L6-v2", // Can be any public or private Hugging Face model.
+      options: {
+        waitForModel: true,
+      },
+    },
+  },
+};
+
+async function addSchema() {
+  const res = await client.schema.classCreator().withClass(classObj).do();
+  console.log(res);
+}
+
 app.get("/schema", (req, res) => {
   client.schema
     .getter()
@@ -35,6 +53,13 @@ app.get("/schema", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+
+async function start() {
+  await addSchema();
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
+
+start();
