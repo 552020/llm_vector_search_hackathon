@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import weaviate, { WeaviateClient, ApiKey } from "weaviate-ts-client";
 import dotenv from "dotenv";
 
@@ -39,7 +39,7 @@ async function addSchema() {
   console.log(res);
 }
 
-app.get("/schema", (req, res) => {
+app.get("/schema", (req: Request, res: Response) => {
   client.schema
     .getter()
     .do()
